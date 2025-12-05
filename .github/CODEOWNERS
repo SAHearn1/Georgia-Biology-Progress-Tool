@@ -1,0 +1,32 @@
+# CODEOWNERS file for Georgia Biology Progress Tool
+# These owners will be automatically requested for review when someone opens a PR
+
+# Default owners for everything in the repo
+* @SAHearn1
+
+# Web application (Next.js)
+/apps/web/ @SAHearn1
+
+# Psychometrics service (Python)
+/apps/psychometrics/ @SAHearn1
+
+# Database schema and migrations
+/packages/database/ @SAHearn1
+
+# Shared packages
+/packages/shared/ @SAHearn1
+
+# Integrations
+/packages/integrations/ @SAHearn1
+
+# Documentation
+/docs/ @SAHearn1
+
+# CI/CD and workflows
+/.github/ @SAHearn1
+
+# Configuration files
+/turbo.json @SAHearn1
+/pnpm-workspace.yaml @SAHearn1
+/package.json @SAHearn1
+/.env.example @SAHearn1
