@@ -1,2 +1,612 @@
-// TODO: Populate this file from PR #1
-// File: prisma/schema.prisma
+// ═══════════════════════════════════════════════════════════════════════════════
+// GEORGIA BIOLOGY PROGRESS TOOL - PRISMA SCHEMA
+// ═══════════════════════════════════════════════════════════════════════════════
+// Optimized for Vercel Postgres with connection pooling support
+// ═══════════════════════════════════════════════════════════════════════════════
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url = env("POSTGRES_PRISMA_URL") // Uses connection pooling
+  directUrl = env("POSTGRES_URL_NON_POOLING") // Direct connection for migrations
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CORE MODELS - Authentication & User Management
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  password      String    // bcrypt hashed
+  role          UserRole  @default(TEACHER)
+
+  // Profile & Settings
+  avatar        String?   // Vercel Blob URL
+  phone         String?
+  district      String?
+  school        String?
+  department    String?
+  title         String?
+
+  // External IDs for SSO/LMS/SIS integration
+  cleverUserId      String?  @unique
+  classlinkUserId   String?  @unique
+  googleUserId      String?  @unique
+  microsoftUserId   String?  @unique
+  canvasUserId      String?  @unique
+  schoologyUserId   String?  @unique
+  sisUserId         String?  @unique
+  onerosterUserId   String?  @unique
+
+  // Preferences
+  timezone      String    @default("America/New_York")
+  language      String    @default("en")
+  notifications Boolean   @default(true)
+  theme         String    @default("light")
+
+  // Metadata
+  emailVerified DateTime?
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  classes       Class[]
+  assessments   Assessment[]
+  activityLogs  ActivityLog[]
+  sessions      Session[]
+
+  @@index([email])
+  @@index([cleverUserId])
+  @@index([classlinkUserId])
+  @@index([googleUserId])
+  @@index([microsoftUserId])
+  @@index([sisUserId])
+  @@map("users")
+}
+
+enum UserRole {
+  TEACHER
+  ADMIN
+  DISTRICT_ADMIN
+  SCHOOL_ADMIN
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SESSION MANAGEMENT - NextAuth.js
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CLASS MANAGEMENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model Class {
+  id          String   @id @default(cuid())
+  name        String
+  period      String?
+  subject     String   @default("Biology")
+  gradeLevel  String   @default("9-12")
+  schoolYear  String
+  semester    String?  // Fall, Spring, Full Year
+
+  // External IDs for LMS integration
+  canvasId    String?  @unique
+  schoologyId String?  @unique
+  googleClassroomId String? @unique
+
+  // Settings
+  description String?
+  color       String?  @default("#10b981")
+  isArchived  Boolean  @default(false)
+
+  // Metadata
+  teacherId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  teacher     User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  enrollments Enrollment[]
+  assessments Assessment[]
+
+  @@index([teacherId])
+  @@index([schoolYear])
+  @@index([canvasId])
+  @@index([schoologyId])
+  @@index([googleClassroomId])
+  @@map("classes")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// STUDENT MANAGEMENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model Student {
+  id              String   @id @default(cuid())
+  studentId       String   @unique // School/District student ID
+  firstName       String
+  lastName        String
+  email           String?
+  gradeLevel      String
+
+  // Demographics
+  dateOfBirth     DateTime?
+  gender          String?
+  ethnicity       String?
+
+  // Special Populations
+  isELL           Boolean  @default(false) // English Language Learner
+  isIEP           Boolean  @default(false) // Individualized Education Program
+  is504           Boolean  @default(false) // Section 504 Plan
+  isGifted        Boolean  @default(false)
+
+  // External IDs for SIS/LMS integration
+  cleverStudentId     String?  @unique
+  classlinkStudentId  String?  @unique
+  sisStudentId        String?  @unique
+  onerosterStudentId  String?  @unique
+  canvasStudentId     String?  @unique
+  schoologyStudentId  String?  @unique
+
+  // Metadata
+  isActive        Boolean  @default(true)
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  enrollments     Enrollment[]
+  assessmentResults AssessmentResult[]
+  standardMastery StandardMastery[]
+  predictions     PredictionData[]
+
+  @@index([studentId])
+  @@index([lastName, firstName])
+  @@index([gradeLevel])
+  @@index([cleverStudentId])
+  @@index([sisStudentId])
+  @@index([onerosterStudentId])
+  @@map("students")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ENROLLMENT - Links Students to Classes
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model Enrollment {
+  id          String   @id @default(cuid())
+  studentId   String
+  classId     String
+
+  // Enrollment Details
+  enrolledAt  DateTime @default(now())
+  droppedAt   DateTime?
+  status      EnrollmentStatus @default(ACTIVE)
+
+  // Sync metadata
+  syncSource  String?  // "manual", "clever", "classlink", "sis", etc.
+  lastSyncAt  DateTime?
+
+  // Relations
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, classId])
+  @@index([studentId])
+  @@index([classId])
+  @@index([status])
+  @@map("enrollments")
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  DROPPED
+  WITHDRAWN
+  COMPLETED
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GEORGIA BIOLOGY STANDARDS (EOC)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model Standard {
+  id              String   @id @default(cuid())
+  code            String   @unique // e.g., "SB1", "SB2.a"
+  domain          String   // e.g., "Cells", "Ecology", "Evolution"
+  title           String
+  description     String   @db.Text
+
+  // Hierarchy
+  parentId        String?  // For sub-standards
+  order           Int      @default(0)
+
+  // Weighting for EOC
+  eocWeight       Float    @default(1.0)
+  difficulty      String?  // "Basic", "Developing", "Proficient", "Distinguished"
+
+  // Metadata
+  isActive        Boolean  @default(true)
+  version         String   @default("2023") // Standard version year
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  parent          Standard?  @relation("StandardHierarchy", fields: [parentId], references: [id])
+  children        Standard[] @relation("StandardHierarchy")
+  assessmentItems AssessmentItem[]
+  standardMastery StandardMastery[]
+  learningObjectives LearningObjective[]
+
+  @@index([code])
+  @@index([domain])
+  @@index([parentId])
+  @@map("standards")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LEARNING OBJECTIVES (Sub-Standards)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model LearningObjective {
+  id          String   @id @default(cuid())
+  standardId  String
+  code        String   // e.g., "SB1.a.1"
+  title       String
+  description String   @db.Text
+  bloomLevel  String?  // "Remember", "Understand", "Apply", "Analyze", etc.
+
+  // Metadata
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  standard    Standard @relation(fields: [standardId], references: [id], onDelete: Cascade)
+
+  @@unique([standardId, code])
+  @@index([standardId])
+  @@map("learning_objectives")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ASSESSMENTS & TESTING
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model Assessment {
+  id          String   @id @default(cuid())
+  classId     String
+  teacherId   String
+
+  // Assessment Info
+  title       String
+  type        AssessmentType
+  description String?  @db.Text
+
+  // Scheduling
+  assignedAt  DateTime @default(now())
+  dueAt       DateTime?
+  testDate    DateTime? // When assessment was/will be administered
+
+  // Grading
+  totalPoints Float
+  passingScore Float?
+  weight      Float    @default(1.0) // For grade calculation
+
+  // External Integration
+  lmsId       String?  // Canvas/Schoology assignment ID
+  lmsUrl      String?
+
+  // Settings
+  isPublished Boolean  @default(false)
+  allowRetake Boolean  @default(false)
+  showResults Boolean  @default(true)
+
+  // Metadata
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacher     User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  items       AssessmentItem[]
+  results     AssessmentResult[]
+
+  @@index([classId])
+  @@index([teacherId])
+  @@index([type])
+  @@index([testDate])
+  @@map("assessments")
+}
+
+enum AssessmentType {
+  DIAGNOSTIC
+  FORMATIVE
+  SUMMATIVE
+  BENCHMARK
+  PRACTICE_EOC
+  MOCK_EOC
+  QUIZ
+  TEST
+  PROJECT
+  HOMEWORK
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ASSESSMENT ITEMS (Questions)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model AssessmentItem {
+  id            String   @id @default(cuid())
+  assessmentId  String
+  standardId    String
+
+  // Item Details
+  itemNumber    Int
+  questionText  String   @db.Text
+  questionType  QuestionType
+
+  // Choices for multiple choice/select
+  choices       Json?    // Array of choice objects
+  correctAnswer Json     // String, array, or object depending on type
+
+  // Scoring
+  points        Float    @default(1.0)
+  difficulty    String?  // "Easy", "Medium", "Hard"
+
+  // Psychometric Properties
+  discrimination Float?  // Item discrimination index
+  pValue        Float?   // Proportion correct (difficulty)
+
+  // Metadata
+  order         Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  assessment    Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  standard      Standard   @relation(fields: [standardId], references: [id])
+
+  @@index([assessmentId])
+  @@index([standardId])
+  @@map("assessment_items")
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  MULTIPLE_SELECT
+  TRUE_FALSE
+  SHORT_ANSWER
+  ESSAY
+  MATCHING
+  FILL_IN_BLANK
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ASSESSMENT RESULTS (Student Scores)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model AssessmentResult {
+  id            String   @id @default(cuid())
+  assessmentId  String
+  studentId     String
+
+  // Scoring
+  rawScore      Float
+  percentScore  Float
+  totalPoints   Float
+  isPassing     Boolean  @default(false)
+
+  // Timing
+  startedAt     DateTime?
+  submittedAt   DateTime?
+  gradedAt      DateTime?
+
+  // Item-Level Data
+  responses     Json?    // Array of item responses
+
+  // Flags
+  isLate        Boolean  @default(false)
+  isExcused     Boolean  @default(false)
+  isMakeup      Boolean  @default(false)
+  attemptNumber Int      @default(1)
+
+  // External Integration
+  syncedToLMS   Boolean  @default(false)
+  lmsGradeId    String?
+  lastSyncAt    DateTime?
+
+  // Metadata
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  assessment    Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  student       Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([assessmentId, studentId, attemptNumber])
+  @@index([assessmentId])
+  @@index([studentId])
+  @@index([submittedAt])
+  @@map("assessment_results")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// STANDARD MASTERY TRACKING
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model StandardMastery {
+  id            String   @id @default(cuid())
+  studentId     String
+  standardId    String
+
+  // Mastery Metrics
+  masteryLevel  MasteryLevel
+  confidence    Float    @default(0.5) // 0-1 scale from IRT/CAT
+
+  // Performance Data
+  attemptCount  Int      @default(0)
+  correctCount  Int      @default(0)
+  lastScore     Float?
+  averageScore  Float?
+  trendSlope    Float?   // Positive = improving, negative = declining
+
+  // Timing
+  firstAttempt  DateTime?
+  lastAttempt   DateTime?
+  masteredAt    DateTime? // When student achieved mastery
+
+  // Metadata
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  student       Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  standard      Standard @relation(fields: [standardId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, standardId])
+  @@index([studentId])
+  @@index([standardId])
+  @@index([masteryLevel])
+  @@map("standard_mastery")
+}
+
+enum MasteryLevel {
+  NOT_STARTED
+  BEGINNING
+  DEVELOPING
+  PROFICIENT
+  DISTINGUISHED
+  MASTERED
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// EOC PREDICTION DATA
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model PredictionData {
+  id                String   @id @default(cuid())
+  studentId         String
+
+  // Predictions
+  predictedScore    Float    // Predicted EOC score (scale score)
+  predictedLevel    String   // "Beginning", "Developing", "Proficient", "Distinguished"
+  confidence        Float    // Prediction confidence (0-1)
+
+  // Model Info
+  modelVersion      String   // Which prediction model was used
+  featuresUsed      Json     // Which features contributed to prediction
+
+  // Confidence Interval
+  lowerBound        Float?
+  upperBound        Float?
+
+  // Contributing Factors
+  currentAverage    Float?
+  growthRate        Float?
+  attendanceRate    Float?
+  assessmentCount   Int      @default(0)
+
+  // Timing
+  predictionDate    DateTime @default(now())
+  targetTestDate    DateTime? // When EOC is scheduled
+
+  // Metadata
+  createdAt         DateTime @default(now())
+
+  // Relations
+  student           Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([predictionDate])
+  @@index([predictedLevel])
+  @@map("prediction_data")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ACTIVITY & AUDIT LOG
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  userId      String?
+
+  // Activity Details
+  action      String   // "create", "update", "delete", "login", etc.
+  entity      String   // "user", "student", "assessment", etc.
+  entityId    String?  // ID of affected entity
+
+  // Context
+  description String?
+  metadata    Json?    // Additional context data
+  ipAddress   String?
+  userAgent   String?
+
+  // Timing
+  timestamp   DateTime @default(now())
+
+  // Relations
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([timestamp])
+  @@map("activity_logs")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SYNC STATUS - Track external integrations
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model SyncStatus {
+  id          String   @id @default(cuid())
+  source      String   // "clever", "classlink", "canvas", "sis", etc.
+  entity      String   // "students", "classes", "enrollments", "grades"
+
+  // Sync Info
+  lastSyncAt  DateTime?
+  nextSyncAt  DateTime?
+  status      SyncStatusType @default(PENDING)
+
+  // Results
+  recordsSynced Int     @default(0)
+  recordsFailed Int     @default(0)
+  errorMessage  String?
+  errorDetails  Json?
+
+  // Metadata
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([source, entity])
+  @@index([source])
+  @@index([status])
+  @@map("sync_status")
+}
+
+enum SyncStatusType {
+  PENDING
+  IN_PROGRESS
+  SUCCESS
+  FAILED
+  PARTIAL
+}
