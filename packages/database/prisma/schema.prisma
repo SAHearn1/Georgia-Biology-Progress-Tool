@@ -1,0 +1,340 @@
+// Georgia Biology Progress Tool - Prisma Schema
+// Database schema for teacher-student biology EOC preparation platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// CORE MODELS - Authentication & User Management
+// ============================================================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  passwordHash  String    @map("password_hash")
+  role          UserRole  @default(TEACHER)
+
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  classes       Class[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  TEACHER
+  ADMIN
+  PARENT
+}
+
+// ============================================================================
+// CORE MODELS - Class & Student Management
+// ============================================================================
+
+model Class {
+  id            String    @id @default(cuid())
+  name          String
+  period        String?
+  schoolYear    String?   @map("school_year")
+
+  // Relations
+  teacherId     String    @map("teacher_id")
+  teacher       User      @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  enrollments   Enrollment[]
+  assessments   Assessment[]
+
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([teacherId])
+  @@map("classes")
+}
+
+model Student {
+  id            String    @id @default(cuid())
+  studentId     String    @unique @map("student_id")  // School-assigned ID
+  firstName     String    @map("first_name")
+  lastName      String    @map("last_name")
+  gradeLevel    Int?      @map("grade_level")
+  email         String?   @unique
+
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  enrollments   Enrollment[]
+  assessmentResults AssessmentResult[]
+  progressRecords   ProgressRecord[]
+
+  @@index([studentId])
+  @@map("students")
+}
+
+model Enrollment {
+  id            String    @id @default(cuid())
+
+  // Relations
+  studentId     String    @map("student_id")
+  student       Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  classId       String    @map("class_id")
+  class         Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  enrolledAt    DateTime  @default(now()) @map("enrolled_at")
+  status        EnrollmentStatus @default(ACTIVE)
+
+  @@unique([studentId, classId])
+  @@index([studentId])
+  @@index([classId])
+  @@map("enrollments")
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  INACTIVE
+  COMPLETED
+}
+
+// ============================================================================
+// STANDARDS & CURRICULUM MODELS
+// ============================================================================
+
+model Standard {
+  id            String    @id @default(cuid())
+  code          String    @unique  // e.g., "SB1.a", "SB2.b"
+  title         String
+  description   String    @db.Text
+  category      StandardCategory
+
+  // Hierarchical structure
+  parentId      String?   @map("parent_id")
+  parent        Standard? @relation("StandardHierarchy", fields: [parentId], references: [id])
+  children      Standard[] @relation("StandardHierarchy")
+
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  assessmentQuestions AssessmentQuestion[]
+  progressRecords     ProgressRecord[]
+
+  @@index([code])
+  @@index([category])
+  @@map("standards")
+}
+
+enum StandardCategory {
+  CELLS_AND_CELLULAR_PROCESSES    // SB1-SB2
+  GENETICS                         // SB3
+  EVOLUTION                        // SB4-SB5
+  ECOLOGY                          // SB6
+}
+
+// ============================================================================
+// ASSESSMENT MODELS
+// ============================================================================
+
+model Assessment {
+  id            String    @id @default(cuid())
+  title         String
+  description   String?   @db.Text
+  type          AssessmentType
+  totalPoints   Int       @default(0) @map("total_points")
+
+  // Scheduling
+  assignedDate  DateTime? @map("assigned_date")
+  dueDate       DateTime? @map("due_date")
+
+  // Relations
+  classId       String?   @map("class_id")
+  class         Class?    @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  questions     AssessmentQuestion[]
+  results       AssessmentResult[]
+
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([classId])
+  @@index([type])
+  @@map("assessments")
+}
+
+enum AssessmentType {
+  PRACTICE_TEST
+  QUIZ
+  FORMATIVE
+  SUMMATIVE
+  EOC_PRACTICE
+}
+
+model AssessmentQuestion {
+  id            String    @id @default(cuid())
+  questionText  String    @db.Text @map("question_text")
+  questionType  QuestionType @map("question_type")
+  points        Int       @default(1)
+  order         Int       @default(0)
+
+  // Multiple choice options (stored as JSON)
+  options       Json?     // Array of options for MC questions
+  correctAnswer String    @map("correct_answer") // or JSON for multiple correct
+
+  // Relations
+  assessmentId  String    @map("assessment_id")
+  assessment    Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  standardId    String?   @map("standard_id")
+  standard      Standard? @relation(fields: [standardId], references: [id])
+
+  @@index([assessmentId])
+  @@index([standardId])
+  @@map("assessment_questions")
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  SHORT_ANSWER
+  ESSAY
+}
+
+model AssessmentResult {
+  id            String    @id @default(cuid())
+
+  // Relations
+  assessmentId  String    @map("assessment_id")
+  assessment    Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  studentId     String    @map("student_id")
+  student       Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  // Results
+  score         Float     // Raw score
+  maxScore      Float     @map("max_score")
+  percentage    Float     // Calculated percentage
+
+  // Timing
+  startedAt     DateTime? @map("started_at")
+  completedAt   DateTime? @map("completed_at")
+  timeSpent     Int?      @map("time_spent") // in seconds
+
+  // Responses (stored as JSON)
+  responses     Json?     // Array of student responses
+
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@unique([assessmentId, studentId])
+  @@index([studentId])
+  @@index([assessmentId])
+  @@map("assessment_results")
+}
+
+// ============================================================================
+// PROGRESS TRACKING MODELS
+// ============================================================================
+
+model ProgressRecord {
+  id            String    @id @default(cuid())
+
+  // Relations
+  studentId     String    @map("student_id")
+  student       Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  standardId    String    @map("standard_id")
+  standard      Standard  @relation(fields: [standardId], references: [id])
+
+  // Progress metrics
+  masteryLevel  MasteryLevel @map("mastery_level")
+  confidence    Float?    // 0-100
+  attempts      Int       @default(1)
+
+  // Timestamps
+  lastAssessed  DateTime  @default(now()) @map("last_assessed")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@unique([studentId, standardId])
+  @@index([studentId])
+  @@index([standardId])
+  @@index([masteryLevel])
+  @@map("progress_records")
+}
+
+enum MasteryLevel {
+  NOT_STARTED
+  BEGINNING
+  DEVELOPING
+  PROFICIENT
+  ADVANCED
+}
+
+// ============================================================================
+// PREDICTION & ANALYTICS MODELS
+// ============================================================================
+
+model EOCPrediction {
+  id            String    @id @default(cuid())
+
+  // Relations
+  studentId     String    @map("student_id")
+
+  // Prediction data
+  predictedScore      Float   @map("predicted_score")      // 0-100
+  confidenceInterval  Float   @map("confidence_interval")  // Statistical confidence
+
+  // Performance breakdown by category
+  cellsScore          Float?  @map("cells_score")
+  geneticsScore       Float?  @map("genetics_score")
+  evolutionScore      Float?  @map("evolution_score")
+  ecologyScore        Float?  @map("ecology_score")
+
+  // Model metadata
+  modelVersion        String  @map("model_version")
+  predictionDate      DateTime @default(now()) @map("prediction_date")
+
+  // Factors considered
+  factors             Json?   // Store feature importance, etc.
+
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@index([studentId])
+  @@index([predictionDate])
+  @@map("eoc_predictions")
+}
+
+// ============================================================================
+// SYSTEM & AUDIT MODELS
+// ============================================================================
+
+model AuditLog {
+  id            String    @id @default(cuid())
+
+  // Action details
+  action        String
+  entityType    String    @map("entity_type")
+  entityId      String    @map("entity_id")
+
+  // Actor
+  userId        String?   @map("user_id")
+  ipAddress     String?   @map("ip_address")
+
+  // Change details
+  changes       Json?     // Before/after values
+
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
