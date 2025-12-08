@@ -1,56 +1,59 @@
-import NextAuth, { NextAuthConfig } from "next-auth";
-import GoogleProvider from "next-auth/providers/google";
+import NextAuth from "next-auth";
+import Google from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "@/lib/db";
 
-export const authOptions: NextAuthConfig = {
-  // 1. Adapter: Connects NextAuth to your Prisma Database
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  // 1. Adapter: Still used to create/update User records in Postgres
   adapter: PrismaAdapter(db),
 
-  // 2. Providers: We only enable Google for Teachers
+  // 2. Providers: Google
   providers: [
-    GoogleProvider({
+    Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
   ],
 
-  // 3. Session Strategy: NextAuth v5 with PrismaAdapter uses JWT
+  // 3. Strategy: FORCED to JWT for Vercel Edge compatibility
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
 
-  // 4. Callbacks: Customize what data is available in the session
+  // 4. Pages: Custom sign-in to match our branding
+  pages: {
+    signIn: "/api/auth/signin",
+  },
+
+  // 5. Callbacks: Crucial for passing the User ID to the Dashboard
   callbacks: {
+    // A. JWT Callback: Called whenever a token is created/updated
     async jwt({ token, user }) {
-      // On sign in, add user id and role to the token
       if (user) {
-        token.id = user.id;
-        // @ts-ignore // Role is custom field
-        token.role = user.role;
+        token.sub = user.id; // Persist the Prisma User ID to the token
+        // @ts-ignore
+        token.role = user.role; // Optional: If you added 'role' to User schema
       }
       return token;
     },
+
+    // B. Session Callback: Called whenever useSession() or auth() is used
     async session({ session, token }) {
-      // Add user id and role from token to session
-      if (session.user) {
-        // @ts-ignore
-        session.user.id = token.id;
+      if (session.user && token.sub) {
+        session.user.id = token.sub; // Make User ID available in the app
         // @ts-ignore
         session.user.role = token.role;
       }
       return session;
     },
+
+    // C. Redirect: Always send to dashboard after login
     async redirect({ url, baseUrl }) {
-      // Always redirect teachers to the dashboard after login
       return `${baseUrl}/dashboard`;
     },
   },
 
-  // 5. Pages: Custom login pages (optional, using default for now)
-  pages: {
-    signIn: '/auth/signin',
-  }
-};
-
-export const { handlers, auth, signIn, signOut } = NextAuth(authOptions);
+  // 6. Secret: Required for JWT encryption
+  secret: process.env.NEXTAUTH_SECRET,
+});
