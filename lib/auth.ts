@@ -1,9 +1,9 @@
-import NextAuth, { NextAuthOptions } from "next-auth";
+import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "@/lib/db";
 
-export const authOptions: NextAuthOptions = {
+export const { handlers, auth, signIn, signOut } = NextAuth({
   // 1. Adapter: Connects NextAuth to your Prisma Database
   adapter: PrismaAdapter(db),
 
@@ -31,18 +31,10 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     },
-    async redirect({ url, baseUrl }) {
-      // Always redirect teachers to the dashboard after login
-      return `${baseUrl}/dashboard`;
-    },
   },
 
   // 5. Pages: Custom login pages (optional, using default for now)
   pages: {
     signIn: '/auth/signin',
   }
-};
-
-const handler = NextAuth(authOptions);
-
-export const handlers = { GET: handler, POST: handler };
+});
