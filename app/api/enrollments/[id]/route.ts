@@ -1,2 +1,5 @@
-// TODO: Populate this file from PR #1
-// File: app/api/enrollments/[id]/route.ts
+import { NextResponse } from 'next/server';
+
+export async function DELETE() {
+  return NextResponse.json({ message: 'Delete enrollment' });
+}

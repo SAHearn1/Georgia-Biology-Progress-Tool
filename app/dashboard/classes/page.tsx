@@ -1,2 +1,3 @@
-// TODO: Populate this file from PR #1
-// File: app/dashboard/classes/page.tsx
+export default function ClassesPage() {
+  return <div>Classes</div>;
+}

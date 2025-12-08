@@ -1,2 +1,3 @@
-// TODO: Populate this file from PR #1
-// File: app/dashboard/students/[id]/edit/page.tsx
+export default function EditStudentPage() {
+  return <div>Edit Student</div>;
+}

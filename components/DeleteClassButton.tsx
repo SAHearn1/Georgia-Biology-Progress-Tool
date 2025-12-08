@@ -1,2 +1,5 @@
-// TODO: Populate this file from PR #1
-// File: components/DeleteClassButton.tsx
+"use client";
+
+export default function DeleteClassButton() {
+  return <button>Delete Class</button>;
+}

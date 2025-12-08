@@ -1,2 +1,5 @@
-// TODO: Populate this file from PR #1
-// File: components/SignOutButton.tsx
+"use client";
+
+export default function SignOutButton() {
+  return <button>Sign Out</button>;
+}

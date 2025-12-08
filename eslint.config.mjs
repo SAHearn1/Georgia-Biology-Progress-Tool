@@ -1,2 +1,5 @@
-// TODO: Populate this file from PR #1
-// File: eslint.config.mjs
+export default [
+  {
+    ignores: [".next/**", "node_modules/**"],
+  },
+];

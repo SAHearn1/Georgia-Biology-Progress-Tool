@@ -1,2 +1,7 @@
-// TODO: Populate this file from PR #1
-// File: app/page.tsx
+export default function HomePage() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <h1 className="text-4xl font-bold">Georgia Biology Progress Tool</h1>
+    </div>
+  );
+}

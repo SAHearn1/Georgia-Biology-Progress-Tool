@@ -1,2 +1,33 @@
-// TODO: Populate this file from PR #1
-// File: prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Class {
+  id        String   @id @default(cuid())
+  name      String
+  period    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Student {
+  id        String   @id @default(cuid())
+  name      String
+  studentId String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

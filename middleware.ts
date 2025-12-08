@@ -1,2 +1,6 @@
-// TODO: Populate this file from PR #1
-// File: middleware.ts
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+export function middleware(request: NextRequest) {
+  return NextResponse.next();
+}

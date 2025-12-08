@@ -1,2 +1,5 @@
-// TODO: Populate this file from PR #1
-// File: next.config.ts
+import type { NextConfig } from "next";
+
+const config: NextConfig = {};
+
+export default config;

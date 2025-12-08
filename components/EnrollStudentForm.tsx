@@ -1,2 +1,5 @@
-// TODO: Populate this file from PR #1
-// File: components/EnrollStudentForm.tsx
+"use client";
+
+export default function EnrollStudentForm() {
+  return <div>Enroll Student Form</div>;
+}

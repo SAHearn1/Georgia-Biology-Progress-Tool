@@ -1,2 +1,5 @@
-// TODO: Populate this file from PR #1
-// File: lib/auth.ts
+import NextAuth from "next-auth";
+
+export const { handlers, signIn, signOut, auth } = NextAuth({
+  providers: [],
+});

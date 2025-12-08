@@ -1,2 +1,3 @@
-// TODO: Populate this file from PR #1
-// File: app/login/page.tsx
+export default function LoginPage() {
+  return <div>Login Page</div>;
+}

@@ -1,2 +1,3 @@
-// TODO: Populate this file from PR #1
-// File: app/register/page.tsx
+export default function RegisterPage() {
+  return <div>Register Page</div>;
+}
