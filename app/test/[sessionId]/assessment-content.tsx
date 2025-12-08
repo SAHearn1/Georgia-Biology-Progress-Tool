@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { CheckCircle2, Clock, ArrowRight, BookOpen, Loader2 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { CheckCircle2, Clock, ArrowRight, BookOpen, Loader2, AlertCircle } from "lucide-react";
 import Link from "next/link";
 
 const SESSION_ID_DISPLAY_LENGTH = 6;
@@ -18,103 +18,94 @@ export default function AssessmentContent({ sessionId }: { sessionId: string }) 
   const [currentItem, setCurrentItem] = useState<Item | null>(null);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isFinished, setIsFinished] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [questionNumber, setQuestionNumber] = useState(0);
   const [startTime, setStartTime] = useState<number>(Date.now());
 
-  // Fetch initial question on mount
-  useEffect(() => {
-    fetchFirstQuestion();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId]);
-
-  const fetchFirstQuestion = async () => {
-    setIsLoading(true);
-    setError(null);
-
+  // Unified fetch function with useCallback optimization
+  const fetchNextItem = useCallback(async (lastItemId?: string, answer?: string, timeSpent?: number) => {
     try {
+      // Only show full-screen loader on initial load
+      if (!lastItemId) setLoading(true);
+      setError(null);
+
+      // Construct payload: if we have an answer, send it to be graded
+      // If not (first load), send just sessionId to get first question
+      const payload = (lastItemId && answer)
+        ? { sessionId, itemId: lastItemId, selectedAnswer: answer, timeSpent }
+        : { sessionId };
+
       const response = await fetch('/api/test/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId,
-          itemId: 'initial'
-        })
+        body: JSON.stringify(payload)
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to load question');
+        throw new Error(data.error || 'Failed to sync with testing engine');
       }
 
-      if (data.nextItem) {
-        setCurrentItem(data.nextItem);
-        setQuestionNumber(1);
+      // Handle test completion
+      if (data.completed) {
+        setIsFinished(true);
+      }
+      // Handle next question
+      else if (data.nextItem) {
+        // Defensive options parsing - handles both stringified JSON and direct arrays
+        const options = typeof data.nextItem.options === 'string'
+          ? JSON.parse(data.nextItem.options)
+          : data.nextItem.options;
+
+        setCurrentItem({ ...data.nextItem, options });
+        setSelectedOption(null);
         setStartTime(Date.now());
+
+        // Increment question number only after successful answer submission
+        if (lastItemId) {
+          setQuestionNumber(prev => prev + 1);
+        } else {
+          // First question
+          setQuestionNumber(1);
+        }
       } else {
         setError('No questions available');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load question');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
+      setSubmitting(false);
     }
-  };
+  }, [sessionId]);
 
+  // Fetch initial question on mount
+  useEffect(() => {
+    fetchNextItem();
+  }, [fetchNextItem]);
+
+  // Handle user clicking "Submit Answer"
   const handleNext = async () => {
     if (!selectedOption || !currentItem) return;
 
-    setIsLoading(true);
-    setError(null);
+    setSubmitting(true);
+    const timeSpent = Math.floor((Date.now() - startTime) / 1000);
 
-    const timeSpent = Math.floor((Date.now() - startTime) / 1000); // Time in seconds
-
-    try {
-      const response = await fetch('/api/test/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId,
-          itemId: currentItem.id,
-          selectedAnswer: selectedOption,
-          timeSpent
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to submit answer');
-      }
-
-      // Check if assessment is complete
-      if (data.completed) {
-        setIsFinished(true);
-      } else if (data.nextItem) {
-        // Load next question
-        setCurrentItem(data.nextItem);
-        setSelectedOption(null);
-        setQuestionNumber(prev => prev + 1);
-        setStartTime(Date.now());
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to submit answer');
-    } finally {
-      setIsLoading(false);
-    }
+    await fetchNextItem(currentItem.id, selectedOption, timeSpent);
   };
 
   const progress = (questionNumber / MAX_ITEMS_PER_SESSION) * 100;
 
   // Loading state
-  if (isLoading && !currentItem) {
+  if (loading && !currentItem) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 text-indigo-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600 font-medium">Loading assessment...</p>
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+          <p className="text-gray-500 font-medium">Loading Adaptive Engine...</p>
         </div>
       </div>
     );
@@ -124,18 +115,18 @@ export default function AssessmentContent({ sessionId }: { sessionId: string }) 
   if (error && !currentItem) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <div className="bg-white max-w-md w-full p-8 rounded-2xl shadow-sm border border-red-200 text-center">
+        <div className="bg-white max-w-md w-full p-8 rounded-2xl shadow-sm border border-red-100 text-center">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <span className="text-3xl">⚠️</span>
+            <AlertCircle className="w-8 h-8 text-red-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Error</h1>
-          <p className="text-red-600 mb-8">{error}</p>
-          <Link
-            href="/"
-            className="block w-full bg-gray-900 text-white py-3 rounded-xl font-medium hover:bg-gray-800 transition-colors"
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Connection Error</h2>
+          <p className="text-gray-500 mb-6">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full bg-indigo-600 text-white py-3 rounded-xl font-medium hover:bg-indigo-700 transition-colors"
           >
-            Return to Home
-          </Link>
+            Retry Session
+          </button>
         </div>
       </div>
     );
@@ -151,7 +142,7 @@ export default function AssessmentContent({ sessionId }: { sessionId: string }) 
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Session Complete</h1>
           <p className="text-gray-500 mb-8">
-            Your responses have been recorded. Your teacher will review your mastery levels shortly.
+            Your responses have been recorded. Your progress has been updated in the Instructional Intelligence dashboard.
           </p>
           <Link
             href="/"
@@ -208,12 +199,12 @@ export default function AssessmentContent({ sessionId }: { sessionId: string }) 
             <button
               key={idx}
               onClick={() => setSelectedOption(option)}
-              disabled={isLoading}
+              disabled={submitting}
               className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 flex items-center justify-between group ${
                 selectedOption === option
                   ? "border-indigo-600 bg-indigo-50 text-indigo-900"
                   : "border-gray-200 hover:border-gray-300 text-gray-700 hover:bg-gray-50"
-              } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+              } ${submitting ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <div className="flex items-center gap-4">
                 <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
@@ -246,17 +237,17 @@ export default function AssessmentContent({ sessionId }: { sessionId: string }) 
         <div className="max-w-3xl mx-auto flex justify-end">
           <button
             onClick={handleNext}
-            disabled={!selectedOption || isLoading}
-            className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold text-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all"
+            disabled={!selectedOption || submitting}
+            className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold text-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all shadow-sm"
           >
-            {isLoading ? (
+            {submitting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Submitting...
+                Processing...
               </>
             ) : (
               <>
-                Next Question
+                Submit Answer
                 <ArrowRight className="w-4 h-4" />
               </>
             )}
