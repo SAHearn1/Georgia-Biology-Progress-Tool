@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { AlertTriangle, Target, CalendarClock, Users } from 'lucide-react';
 import { db } from "@/lib/db";
-import { authOptions } from "@/lib/auth";
-import { CreateClassButton } from "@/components/CreateClassButton";
+import { auth } from "@/lib/auth";
+import CreateClassButton from "@/components/dashboard/create-class-button";
 
 export default async function TeacherDashboard() {
   // 1. Secure the Route (Server-Side)
