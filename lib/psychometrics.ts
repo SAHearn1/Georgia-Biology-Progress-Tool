@@ -3,6 +3,9 @@
  * Implements 3-Parameter Logistic (3-PL) IRT Model for Adaptive Testing
  */
 
+// Configuration constants
+const DEFAULT_LEARNING_RATE = 0.5; // Controls how aggressively the score moves
+
 // 1. Probability Function (3-PL Model)
 // Calculates the probability P of a correct response given theta (ability)
 export function calculateProbability(theta: number, b: number, a: number = 1, c: number = 0): number {
@@ -26,9 +29,9 @@ export function updateTheta(
   currentTheta: number,
   itemDifficulty: number,
   itemDiscrimination: number,
-  isCorrect: boolean
+  isCorrect: boolean,
+  learningRate: number = DEFAULT_LEARNING_RATE
 ): number {
-  const learningRate = 0.5; // Controls how aggressively the score moves
   const probability = calculateProbability(currentTheta, itemDifficulty, itemDiscrimination);
   
   // If correct, score goes up based on how hard the question was.

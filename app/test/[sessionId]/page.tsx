@@ -26,6 +26,7 @@ export default function TestPage() {
   // Fetch the first question when component mounts
   useEffect(() => {
     fetchNextQuestion();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchNextQuestion = async () => {

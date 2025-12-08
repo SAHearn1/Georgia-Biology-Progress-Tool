@@ -23,7 +23,12 @@ export async function POST(req: Request) {
     // 3. Find or Create the Student
     // In a real anonymous system, we might create a new entry every time,
     // or try to match based on name within that specific class.
-    const splitName = fullName.trim().split(" ");
+    const trimmedName = fullName.trim();
+    if (!trimmedName) {
+      return NextResponse.json({ error: "Name cannot be empty" }, { status: 400 });
+    }
+    
+    const splitName = trimmedName.split(" ");
     const firstName = splitName[0];
     const lastName = splitName.slice(1).join(" ") || "";
 
@@ -31,7 +36,7 @@ export async function POST(req: Request) {
       data: {
         firstName,
         lastName,
-        name: fullName.trim(),
+        name: trimmedName,
         classId: targetClass.id,
         riskLevel: "LOW", // Default start
         lastMastery: 0.0  // Start at average ability

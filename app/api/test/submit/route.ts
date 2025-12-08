@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { updateTheta } from "@/lib/psychometrics";
 
+// Configuration constants
+const MAX_ITEMS_PER_SESSION = 10; // Maximum number of items in a single assessment session
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -103,7 +106,7 @@ export async function POST(req: Request) {
     });
 
     // 8. Check for Test Completion
-    if (!nextItem || excludeIds.length >= 10) { // Limit to 10 items for MVP
+    if (!nextItem || excludeIds.length >= MAX_ITEMS_PER_SESSION) {
       await db.assessmentSession.update({
         where: { id: sessionId },
         data: { status: "COMPLETED", endTime: new Date() }

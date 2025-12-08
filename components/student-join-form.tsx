@@ -58,6 +58,7 @@ export default function StudentJoinForm() {
       }
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'An error occurred');
+    } finally {
       setIsSubmitting(false);
     }
   };
