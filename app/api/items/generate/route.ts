@@ -1,23 +1,30 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { db } from "@/lib/db";
+// FIX 1: Remove 'getServerSession' and 'authOptions'
+// FIX 2: Import the v5 'auth' helper from your library
 import { auth } from "@/lib/auth";
 
-// Initialize Anthropic (Expects ANTHROPIC_API_KEY in .env)
+// Initialize Anthropic
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || "",
 });
 
 export async function POST(req: Request) {
   try {
-    // 1. Security Check
+    // FIX 3: Use the v5 auth() call instead of getServerSession
     const session = await auth();
-    if (!session) return new NextResponse("Unauthorized", { status: 401 });
+
+    // Check for valid session
+    if (!session || !session.user) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
 
     const { standard, topic, count = 3 } = await req.json();
 
-    // 2. Construct the Prompt
-    // Claude 3 works best with a distinct System prompt and User prompt.
+    // -------------------------------------------------------
+    // CLAUDE PROMPT ENGINEERING
+    // -------------------------------------------------------
     const systemPrompt = `You are an expert Biology Assessment Developer for Georgia High Schools.
     Your task is to generate valid JSON arrays of multiple-choice questions based on the Georgia Standards of Excellence (GSE).
     Output ONLY raw JSON. Do not include markdown formatting, backticks, or introductory text.`;
@@ -32,48 +39,44 @@ export async function POST(req: Request) {
     - discrimination_a: A float between 0.5 and 2.5 representing how well it discriminates ability.
     - feedback: A short explanation (1-2 sentences) of why the correct answer is right.`;
 
-    // 3. Call Claude (Using Haiku for speed/cost, or Sonnet for reasoning)
+    // 3. Call Claude
     const msg = await anthropic.messages.create({
-      model: "claude-3-haiku-20240307", // Fast & Cheap. Change to 'claude-3-5-sonnet-20240620' for higher quality.
+      model: "claude-3-haiku-20240307",
       max_tokens: 2048,
-      temperature: 0.2, // Low temperature for consistent JSON structure
+      temperature: 0.2,
       system: systemPrompt,
       messages: [
         { role: "user", content: userPrompt }
       ]
     });
 
-    // 4. Extract and Parse Content
-    // Claude returns content blocks. We get the first text block.
+    // 4. Parse Response
     const textBlock = msg.content[0];
     if (textBlock.type !== 'text') {
-        throw new Error("Unexpected response type from Claude");
+        throw new Error("Unexpected response from Claude");
     }
 
     const text = textBlock.text;
-
-    // Clean up potential markdown just in case (e.g. ```json ... ```)
     const cleanJson = text.replace(/```json/g, "").replace(/```/g, "").trim();
 
     let items;
     try {
         items = JSON.parse(cleanJson);
     } catch (e) {
-        console.error("JSON Parse Failed. Raw Output:", text);
-        return NextResponse.json({ error: "Failed to generate valid JSON format." }, { status: 500 });
+        console.error("JSON Parse Failed:", text);
+        return NextResponse.json({ error: "Failed to generate valid JSON." }, { status: 500 });
     }
 
     // 5. Save to Database
     const createdItems = [];
     for (const item of items) {
-      // Validate schema minimally before inserting
       if (!item.content || !item.options || !item.correctAnswer) continue;
 
       const newItem = await db.item.create({
         data: {
           standard: standard,
           content: item.content,
-          options: JSON.stringify(item.options), // Store array as JSON string
+          options: JSON.stringify(item.options),
           correctAnswer: item.correctAnswer,
           difficulty_b: item.difficulty_b || 0.0,
           discrimination_a: item.discrimination_a || 1.0,
