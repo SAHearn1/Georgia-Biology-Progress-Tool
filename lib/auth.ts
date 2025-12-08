@@ -1,9 +1,9 @@
-import NextAuth, { NextAuthOptions } from "next-auth";
+import NextAuth, { NextAuthConfig } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "@/lib/db";
 
-export const authOptions: NextAuthOptions = {
+export const authOptions: NextAuthConfig = {
   // 1. Adapter: Connects NextAuth to your Prisma Database
   adapter: PrismaAdapter(db),
 
@@ -43,6 +43,4 @@ export const authOptions: NextAuthOptions = {
   }
 };
 
-const handler = NextAuth(authOptions);
-
-export const handlers = { GET: handler, POST: handler };
+export const { handlers, auth, signIn, signOut } = NextAuth(authOptions);

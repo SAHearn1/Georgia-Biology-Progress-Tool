@@ -1,14 +1,13 @@
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { AlertTriangle, Target, CalendarClock, Users } from 'lucide-react';
 import { db } from "@/lib/db";
-import { authOptions } from "@/lib/auth";
-import { CreateClassButton } from "@/components/CreateClassButton";
+import { auth } from "@/lib/auth";
+import CreateClassButton from "@/components/dashboard/create-class-button";
 
 export default async function TeacherDashboard() {
   // 1. Secure the Route (Server-Side)
   // We strictly check for a valid session. If none, bounce to login.
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session || !session.user) {
     redirect("/api/auth/signin");
