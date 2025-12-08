@@ -33,10 +33,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.sub = user.id; // Persist the Prisma User ID to the token
-        // @ts-ignore
-        token.role = user.role; // Optional: If you added 'role' to User schema
+        token.email = user.email;
+        token.name = user.name;
       }
       return token;
+    },
+    // B. Session Callback: Pass user data from token to session
+    async session({ session, token }) {
+      if (token && session.user) {
+        session.user.id = token.sub as string;
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
+      }
+      return session;
     },
   },
 });
