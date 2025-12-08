@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -9,22 +10,20 @@ import { z } from 'zod';
 const studentJoinSchema = z.object({
   firstName: z.string().min(1, 'First name is required').max(50, 'First name is too long'),
   lastName: z.string().min(1, 'Last name is required').max(50, 'Last name is too long'),
-  studentId: z.string().min(1, 'Student ID is required').max(20, 'Student ID is too long'),
-  classCode: z.string().min(4, 'Class code must be at least 4 characters').max(20, 'Class code is too long'),
+  accessCode: z.string().min(4, 'Access code must be at least 4 characters').max(20, 'Access code is too long'),
 });
 
 type StudentJoinFormData = z.infer<typeof studentJoinSchema>;
 
 export default function StudentJoinForm() {
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
-    reset,
   } = useForm<StudentJoinFormData>({
     resolver: zodResolver(studentJoinSchema),
   });
@@ -32,15 +31,19 @@ export default function StudentJoinForm() {
   const onSubmit = async (data: StudentJoinFormData) => {
     setIsSubmitting(true);
     setSubmitError(null);
-    setSubmitSuccess(false);
 
     try {
+      const fullName = `${data.firstName} ${data.lastName}`.trim();
+      
       const response = await fetch('/api/student/join', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          fullName,
+          accessCode: data.accessCode
+        }),
       });
 
       const result = await response.json();
@@ -49,30 +52,18 @@ export default function StudentJoinForm() {
         throw new Error(result.error || 'Failed to join class');
       }
 
-      // Success
-      setSubmitSuccess(true);
-      reset();
-      
-      // Optionally redirect to a success page or show a success message
-      setTimeout(() => {
-        setSubmitSuccess(false);
-      }, 5000);
+      // Redirect to the test page with the sessionId
+      if (result.sessionId) {
+        router.push(`/test/${result.sessionId}`);
+      }
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'An error occurred');
-    } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
     <div className="bg-white rounded-lg shadow-md p-8">
-      {submitSuccess && (
-        <div className="mb-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded">
-          <p className="font-medium">Successfully joined the class!</p>
-          <p className="text-sm mt-1">You can now access your class materials.</p>
-        </div>
-      )}
-
       {submitError && (
         <div className="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">
           <p className="font-medium">Error</p>
@@ -119,44 +110,25 @@ export default function StudentJoinForm() {
           )}
         </div>
 
-        {/* Student ID */}
+        {/* Access Code */}
         <div>
-          <label htmlFor="studentId" className="block text-sm font-medium text-gray-700 mb-1">
-            Student ID
+          <label htmlFor="accessCode" className="block text-sm font-medium text-gray-700 mb-1">
+            Access Code
           </label>
           <input
-            id="studentId"
+            id="accessCode"
             type="text"
-            {...register('studentId')}
+            {...register('accessCode')}
             className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
-              errors.studentId ? 'border-red-500' : 'border-gray-300'
+              errors.accessCode ? 'border-red-500' : 'border-gray-300'
             }`}
-            placeholder="Enter your student ID"
+            placeholder="Enter your class access code"
           />
-          {errors.studentId && (
-            <p className="mt-1 text-sm text-red-600">{errors.studentId.message}</p>
-          )}
-        </div>
-
-        {/* Class Code */}
-        <div>
-          <label htmlFor="classCode" className="block text-sm font-medium text-gray-700 mb-1">
-            Class Code
-          </label>
-          <input
-            id="classCode"
-            type="text"
-            {...register('classCode')}
-            className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
-              errors.classCode ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="Enter your class code"
-          />
-          {errors.classCode && (
-            <p className="mt-1 text-sm text-red-600">{errors.classCode.message}</p>
+          {errors.accessCode && (
+            <p className="mt-1 text-sm text-red-600">{errors.accessCode.message}</p>
           )}
           <p className="mt-1 text-sm text-gray-500">
-            Get the class code from your teacher
+            Get the access code from your teacher
           </p>
         </div>
 
@@ -170,7 +142,7 @@ export default function StudentJoinForm() {
               : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
           }`}
         >
-          {isSubmitting ? 'Joining...' : 'Join Class'}
+          {isSubmitting ? 'Starting Assessment...' : 'Start Assessment'}
         </button>
       </form>
 
