@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     const { name, code } = body;
 
     // Validate input
-    if (!name || !code) {
+    if (!name?.trim() || !code?.trim()) {
       return NextResponse.json(
         { success: false, message: 'Name and code are required' },
         { status: 400 }

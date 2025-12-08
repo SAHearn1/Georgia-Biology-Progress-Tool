@@ -37,7 +37,7 @@ export async function joinStudent(
     console.error('Error joining class:', error);
     return {
       success: false,
-      message: error instanceof Error ? error.message : 'An error occurred',
+      message: error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.',
     };
   }
 }
