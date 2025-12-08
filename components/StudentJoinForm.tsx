@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { User, Key, ArrowRight, Loader2 } from "lucide-react";
 
+const MIN_ACCESS_CODE_LENGTH = 3;
+
 export default function StudentJoinForm() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -22,7 +24,7 @@ export default function StudentJoinForm() {
     // SIMULATION: In the real app, this will POST to /api/student/join
     // For now, we simulate a network delay and success
     try {
-      if (formData.accessCode.length < 3) {
+      if (formData.accessCode.length < MIN_ACCESS_CODE_LENGTH) {
         throw new Error("Invalid access code.");
       }
 
