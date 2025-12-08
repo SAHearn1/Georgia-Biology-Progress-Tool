@@ -1,3 +1,5 @@
-export default function Component() {
-  return <div>Component - To be implemented</div>;
+"use client";
+
+export default function EnrollStudentForm() {
+  return <div>Enroll Student Form</div>;
 }

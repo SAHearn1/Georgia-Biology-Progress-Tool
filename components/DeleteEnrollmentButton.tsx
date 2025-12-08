@@ -1,3 +1,5 @@
-export default function Component() {
-  return <div>Component - To be implemented</div>;
+"use client";
+
+export default function DeleteEnrollmentButton() {
+  return <button>Delete Enrollment</button>;
 }

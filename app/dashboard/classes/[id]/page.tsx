@@ -1,1 +1,3 @@
-export default function Page() { return <div>Page - To be implemented</div>; }
+export default function ClassDetailPage() {
+  return <div>Class Detail</div>;
+}

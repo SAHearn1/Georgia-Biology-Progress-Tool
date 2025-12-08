@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Georgia Biology Progress Tool",
-  description: "Biology EOC progress tracking and prediction tool",
+  description: "A comprehensive web application for Biology EOC testing",
 };
 
 export default function RootLayout({

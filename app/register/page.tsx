@@ -1,3 +1,3 @@
 export default function RegisterPage() {
-  return <div>Register Page - To be implemented</div>;
+  return <div>Register Page</div>;
 }
