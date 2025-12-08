@@ -9,7 +9,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
   // 2. Providers: Google
   providers: [
-    Google({
+    GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
@@ -36,12 +36,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // @ts-ignore
         token.role = user.role; // Optional: If you added 'role' to User schema
       }
-      return session;
+      return token;
     },
   },
-
-  // 5. Pages: Custom login pages (optional, using default for now)
-  pages: {
-    signIn: '/auth/signin',
-  }
 });

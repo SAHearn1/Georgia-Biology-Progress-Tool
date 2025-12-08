@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { AlertTriangle, Target, CalendarClock, Users } from 'lucide-react';
 import { db } from "@/lib/db";
-import { authOptions } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import { CreateClassButton } from "@/components/CreateClassButton";
 
 export default async function TeacherDashboard() {
