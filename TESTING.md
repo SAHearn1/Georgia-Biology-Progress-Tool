@@ -9,15 +9,11 @@ This project is a Next.js 14 app with Prisma, NextAuth, and an adaptive testing 
 
 ### Required environment variables
 - `DATABASE_URL`: PostgreSQL connection string used by Prisma.
-- `NEXTAUTH_URL` and `NEXTAUTH_SECRET` or `AUTH_SECRET`: for NextAuth callbacks and session signing.
-- `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`: enables Google OAuth on `/auth/signin`. Use the real client from Google Cloud (usually ending with `.apps.googleusercontent.com`) and add `http://localhost:3000/api/auth/callback/google` as an Authorized Redirect URI to avoid `invalid_client` errors.
-- `NEXT_PUBLIC_ENABLE_CAT_ALGORITHM`: toggles the adaptive flow.
-- `NEXT_PUBLIC_SCHOOL_YEAR`: displayed in the UI header and metadata.
+- `NEXTAUTH_URL` and `NEXTAUTH_SECRET`: for NextAuth callbacks and session signing.
+- `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`: enables Google OAuth on `/auth/signin`.
 
 ### Optional environment variables
 - `ANTHROPIC_API_KEY`: unlocks `/api/items/generate` for AI item authoring.
-
-> Tip: run `npm run env:check` to validate your `.env` (or `.env.local`) includes everything required before running tests.
 
 ## 2) Database preparation (run once per clean environment)
 ```bash
@@ -32,7 +28,6 @@ npx prisma db seed
 ## 3) Automated checks
 | Suite | Command | Notes |
 | --- | --- | --- |
-| Env validation | `npm run env:check` | Verifies required env vars are present before running other checks and flags placeholder Google OAuth values. |
 | Lint | `npm run lint` | Runs ESLint on the Next.js app. |
 | DB schema sync | `npx prisma db push` | Validates schema matches the target database. |
 | Seed verification | `npx prisma db seed` | Ensures baseline data loads for local/e2e tests. |
