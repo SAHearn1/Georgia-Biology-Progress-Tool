@@ -20,6 +20,7 @@ export default function StudentJoinForm() {
       // This would typically redirect to the student dashboard or show success
       console.log("Joining class with access code:", accessCode);
     } catch (err) {
+      console.error("Error joining class:", err);
       setError("Failed to join class. Please check your access code and try again.");
     } finally {
       setIsSubmitting(false);
@@ -40,11 +41,11 @@ export default function StudentJoinForm() {
           id="accessCode"
           value={accessCode}
           onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
-          placeholder="XXXX-XXXX"
+          placeholder="XXXXXXXX"
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-center text-lg font-mono tracking-wider"
           required
           disabled={isSubmitting}
-          maxLength={9}
+          maxLength={8}
         />
         <p className="mt-2 text-xs text-gray-400 text-center">
           Enter the 8-character code from your teacher
