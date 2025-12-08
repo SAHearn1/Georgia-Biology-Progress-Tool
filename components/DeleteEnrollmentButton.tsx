@@ -1,2 +1,3 @@
-// TODO: Populate this file from PR #1
-// File: components/DeleteEnrollmentButton.tsx
+export default function Component() {
+  return <div>Component - To be implemented</div>;
+}
