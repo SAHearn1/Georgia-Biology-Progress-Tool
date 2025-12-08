@@ -7,7 +7,6 @@ type Requirement = {
   mode?: "all" | "any";
   optional?: boolean;
   note?: string;
-  validate?: (values: string[]) => string | null;
 };
 
 type EnvMap = Record<string, string>;
@@ -31,22 +30,6 @@ const requirements: Requirement[] = [
   {
     keys: ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"],
     label: "Google OAuth client ID/secret",
-    validate: ([clientId]) => {
-      if (!clientId) return null;
-
-      const isPlaceholder = /your-google-client-id/i.test(clientId);
-      const likelyInvalid = !clientId.endsWith(".apps.googleusercontent.com");
-
-      if (isPlaceholder) {
-        return "Replace the sample Google client ID with the real OAuth client from Google Cloud Console.";
-      }
-
-      if (likelyInvalid) {
-        return "Client ID should normally end with .apps.googleusercontent.com; double-check the configured OAuth credential.";
-      }
-
-      return null;
-    },
   },
   {
     keys: ["ANTHROPIC_API_KEY"],
@@ -98,11 +81,7 @@ function collectEnv(): EnvMap {
 }
 
 function checkRequirements(env: EnvMap) {
-  const results = [] as {
-    requirement: Requirement;
-    missing: string[];
-    validationMessage?: string | null;
-  }[];
+  const results = [] as { requirement: Requirement; missing: string[] }[];
 
   for (const requirement of requirements) {
     const mode = requirement.mode ?? "all";
@@ -113,11 +92,8 @@ function checkRequirements(env: EnvMap) {
         ? missing.length === 0
         : requirement.keys.some((key) => env[key]);
 
-    const values = requirement.keys.map((key) => env[key]).filter(Boolean) as string[];
-    const validationMessage = requirement.validate?.(values) ?? null;
-
-    if (!satisfied || validationMessage) {
-      results.push({ requirement, missing, validationMessage });
+    if (!satisfied) {
+      results.push({ requirement, missing });
     }
   }
 
@@ -137,16 +113,13 @@ function main() {
   }
 
   console.error("❌ Missing or incomplete environment configuration detected:\n");
-  for (const { requirement, missing, validationMessage } of results) {
+  for (const { requirement, missing } of results) {
     const optionalLabel = requirement.optional ? " (optional)" : "";
     const missingList = missing.length ? `Missing: ${missing.join(", ")}` : "";
     const modeLabel = requirement.mode === "any" ? "(need any one)" : "(need all)";
     console.error(`- ${requirement.label}${optionalLabel} ${modeLabel}`);
     if (missingList) {
       console.error(`  ${missingList}`);
-    }
-    if (validationMessage) {
-      console.error(`  ${validationMessage}`);
     }
     if (requirement.note) {
       console.error(`  Note: ${requirement.note}`);
