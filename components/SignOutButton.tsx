@@ -1,5 +1,3 @@
-"use client";
-
-export default function SignOutButton() {
-  return <button>Sign Out</button>;
+export default function Component() {
+  return <div>Component - To be implemented</div>;
 }
