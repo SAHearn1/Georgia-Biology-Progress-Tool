@@ -1,2 +1,1 @@
-// TODO: Populate this file from PR #1
-// File: app/dashboard/classes/page.tsx
+export default function Page() { return <div>Page - To be implemented</div>; }
