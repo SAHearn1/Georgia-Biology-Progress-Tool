@@ -9,7 +9,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
   // 2. Providers
   providers: [
-    Google({
+    GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
@@ -46,7 +46,4 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return session;
     }
   },
-
-  // 6. Secret
-  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
 });
