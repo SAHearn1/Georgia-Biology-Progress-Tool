@@ -17,17 +17,66 @@ model User {
 }
 
 model Class {
-  id        String   @id @default(cuid())
-  name      String
-  period    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String    @id @default(cuid())
+  name       String
+  period     String?
+  accessCode String    @unique
+  students   Student[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 }
 
 model Student {
-  id        String   @id @default(cuid())
-  name      String
-  studentId String?  @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 String              @id @default(cuid())
+  firstName          String
+  lastName           String
+  name               String              @default("")
+  studentId          String?             @unique
+  classId            String
+  class              Class               @relation(fields: [classId], references: [id], onDelete: Cascade)
+  riskLevel          String              @default("LOW")
+  lastMastery        Float               @default(0.0)
+  assessmentSessions AssessmentSession[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+}
+
+model AssessmentSession {
+  id           String     @id @default(cuid())
+  studentId    String
+  student      Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  startTime    DateTime   @default(now())
+  endTime      DateTime?
+  status       String     @default("IN_PROGRESS")
+  currentTheta Float      @default(0.0)
+  responses    Response[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Item {
+  id                 String     @id @default(cuid())
+  content            String
+  options            Json
+  correctAnswer      String
+  standard           String
+  difficulty_b       Float
+  discrimination_a   Float      @default(1.0)
+  guessing_c         Float      @default(0.0)
+  responses          Response[]
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+}
+
+model Response {
+  id             String            @id @default(cuid())
+  sessionId      String
+  session        AssessmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  itemId         String
+  item           Item              @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  selectedAnswer String
+  isCorrect      Boolean
+  timeSpent      Int
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
 }
