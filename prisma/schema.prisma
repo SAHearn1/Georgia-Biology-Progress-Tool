@@ -68,6 +68,7 @@ model Item {
   difficulty_b       Float
   discrimination_a   Float      @default(1.0)
   guessing_c         Float      @default(0.0)
+  feedback           String?
   responses          Response[]
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
