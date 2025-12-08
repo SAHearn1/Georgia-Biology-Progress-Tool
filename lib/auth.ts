@@ -15,19 +15,29 @@ export const authOptions: NextAuthConfig = {
     }),
   ],
 
-  // 3. Session Strategy: We use database sessions for security
+  // 3. Session Strategy: NextAuth v5 with PrismaAdapter uses JWT
   session: {
-    strategy: "database",
+    strategy: "jwt",
   },
 
   // 4. Callbacks: Customize what data is available in the session
   callbacks: {
-    async session({ session, user }) {
-      if (session.user) {
-        // Attach the User ID to the session so we can query classes later
-        session.user.id = user.id;
+    async jwt({ token, user }) {
+      // On sign in, add user id and role to the token
+      if (user) {
+        token.id = user.id;
         // @ts-ignore // Role is custom field
-        session.user.role = user.role;
+        token.role = user.role;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      // Add user id and role from token to session
+      if (session.user) {
+        // @ts-ignore
+        session.user.id = token.id;
+        // @ts-ignore
+        session.user.role = token.role;
       }
       return session;
     },
