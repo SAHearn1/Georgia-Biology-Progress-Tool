@@ -9,7 +9,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
   // 2. Providers: Google
   providers: [
-    Google({
+    GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
@@ -23,8 +23,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
   // 4. Pages: Custom sign-in to match our branding
   pages: {
-    signIn: "/auth/signin", // FIX: Changed from /api/auth/signin to /auth/signin
-    // We rely on the auto-generated Google prompt or our custom button
+    signIn: "/auth/signin",
   },
 
   // 5. Callbacks: Crucial for passing the User ID to the Dashboard
@@ -36,12 +35,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // @ts-ignore
         token.role = user.role; // Optional: If you added 'role' to User schema
       }
-      return session;
+      return token;
     },
   },
-
-  // 5. Pages: Custom login pages (optional, using default for now)
-  pages: {
-    signIn: '/auth/signin',
-  }
 });
