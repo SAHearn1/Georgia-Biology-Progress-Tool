@@ -1,8 +1,9 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { AlertTriangle, Target, CalendarClock, Plus, Users } from 'lucide-react';
+import { AlertTriangle, Target, CalendarClock, Users } from 'lucide-react';
 import { db } from "@/lib/db";
 import { authOptions } from "@/lib/auth";
+import { CreateClassButton } from "@/components/CreateClassButton";
 
 export default async function TeacherDashboard() {
   // 1. Secure the Route (Server-Side)
@@ -50,9 +51,7 @@ export default async function TeacherDashboard() {
           <h1 className="text-2xl font-bold text-gray-900">Good Morning, {session.user.name}</h1>
           <p className="text-gray-500">Real-time instructional intelligence for {myClasses.length} active classes.</p>
         </div>
-        <button className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 flex items-center gap-2 transition-colors">
-          <Plus className="w-4 h-4" /> New Class
-        </button>
+        <CreateClassButton />
       </div>
 
       {/* ZERO-CLICK INTELLIGENCE PANEL */}
