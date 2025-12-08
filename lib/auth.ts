@@ -1,51 +1,52 @@
 import NextAuth from "next-auth";
-import GoogleProvider from "next-auth/providers/google";
+import Google from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "@/lib/db";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  // 1. Adapter: Connects NextAuth to your Prisma Database
+  // 1. Adapter: Connects to Postgres to create/update the User record
   adapter: PrismaAdapter(db),
 
-  // 2. Providers: Google
+  // 2. Providers
   providers: [
-    GoogleProvider({
+    Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
   ],
 
-  // 3. Strategy: FORCED to JWT for Vercel Edge compatibility
+  // 3. Strategy: JWT is required for Vercel Edge compatibility
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
 
-  // 4. Pages: Custom sign-in to match our branding
+  // 4. Pages
   pages: {
-    signIn: "/auth/signin", // FIX: Changed from /api/auth/signin to /auth/signin
-    // We rely on the auto-generated Google prompt or our custom button
+    signIn: "/auth/signin",
   },
 
-  // 5. Callbacks: Crucial for passing the User ID to the Dashboard
+  // 5. CRITICAL CALLBACKS
   callbacks: {
-    // A. JWT Callback: Called whenever a token is created/updated
+    // A. JWT Callback: Runs when a token is created/updated.
+    // We must capture the Database ID (user.id) and put it into the token.
     async jwt({ token, user }) {
       if (user) {
-        token.sub = user.id; // Persist the Prisma User ID to the token
-        token.email = user.email;
-        token.name = user.name;
+        token.sub = user.id; // Map the Prisma User ID to the standard 'sub' field
       }
       return token;
     },
-    // B. Session Callback: Pass user data from token to session
+
+    // B. Session Callback: Runs when the client/server asks "Who is logged in?"
+    // We must copy the ID from the Token into the Session object.
     async session({ session, token }) {
-      if (token && session.user) {
-        session.user.id = token.sub as string;
-        session.user.email = token.email as string;
-        session.user.name = token.name as string;
+      if (session.user && token.sub) {
+        session.user.id = token.sub; // Pass the ID to the app
       }
       return session;
-    },
+    }
   },
+
+  // 6. Secret
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
 });
