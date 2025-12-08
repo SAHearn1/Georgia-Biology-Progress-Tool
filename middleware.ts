@@ -1,21 +1,14 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { auth } from "@/lib/auth"
 
-export function middleware(request: NextRequest) {
-  // For now, just allow all requests through
-  // This can be extended later for authentication checks
-  return NextResponse.next();
-}
+export default auth((req) => {
+  // Simple logic: If not logged in and trying to access dashboard, redirect
+  if (!req.auth && req.nextUrl.pathname.startsWith("/dashboard")) {
+    const newUrl = new URL("/api/auth/signin", req.nextUrl.origin)
+    return Response.redirect(newUrl)
+  }
+})
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
-  ],
-};
+  // Protects dashboard routes matching this pattern
+  matcher: ["/dashboard/:path*"],
+}
