@@ -1,6 +1,7 @@
 import Link from 'next/link';
-import { Microscope, GraduationCap, Users, LogIn, LayoutDashboard } from 'lucide-react';
+import { GraduationCap, Users, LogIn, LayoutDashboard } from 'lucide-react';
 import { auth } from "@/lib/auth"; // Import Auth to check status
+import BrandLogo from '@/components/brand-logo';
 
 export default async function LandingPage() {
   const session = await auth();
@@ -13,19 +14,14 @@ export default async function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
 
           {/* Logo / Home Link */}
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
-              <Microscope className="text-white w-5 h-5" />
-            </div>
-            <span className="font-bold text-gray-900 text-lg tracking-tight">GA BioMonitor</span>
-          </div>
+          <BrandLogo variant="dark" showSubtitle={false} />
 
           {/* Dynamic Navigation Tools */}
           <div className="flex gap-4 items-center">
             {isLoggedIn ? (
               <Link
                 href="/dashboard"
-                className="text-sm font-medium text-indigo-600 hover:text-indigo-700 flex items-center gap-2"
+                className="text-sm font-medium text-[#1a472a] hover:text-[#143d23] flex items-center gap-2"
               >
                 <LayoutDashboard className="w-4 h-4" />
                 Return to Dashboard
@@ -48,10 +44,10 @@ export default async function LandingPage() {
 
           {/* TEACHER CARD */}
           <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center hover:shadow-md transition-all group relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#1a472a] to-[#d4af37]"></div>
 
-            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <GraduationCap className="text-blue-600 w-8 h-8" />
+            <div className="w-16 h-16 bg-[#1a472a]/10 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <GraduationCap className="text-[#1a472a] w-8 h-8" />
             </div>
 
             <h2 className="text-2xl font-bold text-gray-900 mb-2">I am a Teacher</h2>
@@ -62,7 +58,7 @@ export default async function LandingPage() {
             {isLoggedIn ? (
               <Link
                 href="/dashboard"
-                className="w-full bg-indigo-600 text-white py-3 px-4 rounded-xl font-bold hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 shadow-sm"
+                className="w-full bg-[#1a472a] text-white py-3 px-4 rounded-xl font-bold hover:bg-[#143d23] transition-colors flex items-center justify-center gap-2 shadow-sm"
               >
                 <LayoutDashboard className="w-4 h-4" />
                 Open Dashboard
@@ -70,7 +66,7 @@ export default async function LandingPage() {
             ) : (
               <Link
                 href="/auth/signin"
-                className="w-full bg-white border-2 border-indigo-100 text-indigo-600 py-3 px-4 rounded-xl font-bold hover:border-indigo-600 hover:bg-indigo-50 transition-all flex items-center justify-center gap-2"
+                className="w-full bg-white border-2 border-[#1a472a]/20 text-[#1a472a] py-3 px-4 rounded-xl font-bold hover:border-[#1a472a] hover:bg-[#1a472a]/5 transition-all flex items-center justify-center gap-2"
               >
                 <LogIn className="w-4 h-4" />
                 Teacher Login
