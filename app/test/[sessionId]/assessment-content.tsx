@@ -44,6 +44,8 @@ const MOCK_ITEMS = [
   }
 ];
 
+const SESSION_ID_DISPLAY_LENGTH = 6;
+
 export default function AssessmentContent({ sessionId }: { sessionId: string }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [responses, setResponses] = useState<Record<string, string>>({});
@@ -51,7 +53,7 @@ export default function AssessmentContent({ sessionId }: { sessionId: string }) 
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
 
   const currentItem = MOCK_ITEMS[currentIndex];
-  const progress = ((currentIndex) / MOCK_ITEMS.length) * 100;
+  const progress = ((currentIndex + 1) / MOCK_ITEMS.length) * 100;
 
   const handleNext = () => {
     if (!selectedOption) return;
@@ -96,7 +98,7 @@ export default function AssessmentContent({ sessionId }: { sessionId: string }) 
       <header className="h-16 border-b border-gray-200 flex items-center justify-between px-4 sm:px-8 bg-white sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <span className="font-mono text-sm font-bold text-gray-500">
-            SESSION: {sessionId.slice(0,6).toUpperCase()}
+            SESSION: {sessionId.slice(0, SESSION_ID_DISPLAY_LENGTH).toUpperCase()}
           </span>
           <div className="h-4 w-px bg-gray-300"></div>
           <div className="flex items-center gap-1.5 text-indigo-600 bg-indigo-50 px-2 py-1 rounded text-xs font-bold">
@@ -106,7 +108,7 @@ export default function AssessmentContent({ sessionId }: { sessionId: string }) 
         </div>
         <div className="flex items-center gap-2 text-gray-400 text-sm">
           <Clock className="w-4 h-4" />
-          <span>04:12</span> {/* Mock Timer */}
+          <span>--:--</span> {/* Timer: To be implemented with actual timing logic */}
         </div>
       </header>
 
