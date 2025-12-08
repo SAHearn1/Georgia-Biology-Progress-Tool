@@ -1,10 +1,10 @@
 import NextAuth from "next-auth";
-import Google from "next-auth/providers/google";
+import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "@/lib/db";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  // 1. Adapter: Still used to create/update User records in Postgres
+  // 1. Adapter: Connects NextAuth to your Prisma Database
   adapter: PrismaAdapter(db),
 
   // 2. Providers: Google
@@ -36,18 +36,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // @ts-ignore
         token.role = user.role; // Optional: If you added 'role' to User schema
       }
-      return token;
-    },
-
-    // B. Session Callback: Called whenever useSession() or auth() is used
-    async session({ session, token }) {
-      if (session.user && token.sub) {
-        session.user.id = token.sub; // Make User ID available in the app
-      }
       return session;
-    }
+    },
   },
 
-  // 6. Secret: Required for JWT encryption
-  secret: process.env.NEXTAUTH_SECRET,
+  // 5. Pages: Custom login pages (optional, using default for now)
+  pages: {
+    signIn: '/auth/signin',
+  }
 });
