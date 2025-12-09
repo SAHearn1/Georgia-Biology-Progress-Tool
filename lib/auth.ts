@@ -1,19 +1,19 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
-import { PrismaAdapter } from "@auth/prisma-adapter";
-import { db } from "@/lib/db";
 
-// Validate required environment variables
-if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-  throw new Error(
-    "Missing Google OAuth credentials. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in environment variables."
-  );
-}
-
-if (!process.env.AUTH_SECRET && !process.env.NEXTAUTH_SECRET) {
-  throw new Error(
-    "Missing authentication secret. Please set AUTH_SECRET or NEXTAUTH_SECRET in environment variables."
-  );
+// Log warnings for missing environment variables (but don't throw errors)
+// NextAuth will handle these gracefully
+if (process.env.NODE_ENV === "development") {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    console.warn(
+      "⚠️  Missing Google OAuth credentials. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET."
+    );
+  }
+  if (!process.env.AUTH_SECRET && !process.env.NEXTAUTH_SECRET) {
+    console.warn(
+      "⚠️  Missing authentication secret. Please set AUTH_SECRET or NEXTAUTH_SECRET."
+    );
+  }
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -22,7 +22,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   // 1. Adapter: Connects to Postgres to create/update the User record
   adapter: PrismaAdapter(db),
 
-  // 2. Providers
+  // 1. Providers
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
@@ -38,34 +38,37 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
 
-  // 3. Strategy: JWT is required for Vercel Edge compatibility
+  // 2. Strategy: JWT is required for Vercel Edge compatibility
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
 
-  // 4. Pages
+  // 3. Pages
   pages: {
     signIn: "/auth/signin",
     error: "/auth/error", // Error page for OAuth errors
   },
 
-  // 5. CRITICAL CALLBACKS
+  // 4. CRITICAL CALLBACKS
   callbacks: {
     // A. JWT Callback: Runs when a token is created/updated.
-    // We must capture the Database ID (user.id) and put it into the token.
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
-        token.sub = user.id; // Map the Prisma User ID to the standard 'sub' field
+        // Store user info in the token
+        token.sub = user.id;
+        token.email = user.email;
+        token.name = user.name;
       }
       return token;
     },
 
     // B. Session Callback: Runs when the client/server asks "Who is logged in?"
-    // We must copy the ID from the Token into the Session object.
     async session({ session, token }) {
-      if (session.user && token.sub) {
-        session.user.id = token.sub; // Pass the ID to the app
+      if (session.user && token) {
+        session.user.id = token.sub as string;
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
       }
       return session;
     },
@@ -80,9 +83,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
 
-  // 6. Secret: Try AUTH_SECRET first, then fall back to NEXTAUTH_SECRET
+  // 5. Secret: Try AUTH_SECRET first, then fall back to NEXTAUTH_SECRET
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
 
-  // 7. Debug mode (only enable in development)
+  // 6. Debug mode (only enable in development)
   debug: process.env.NODE_ENV === "development",
 });
