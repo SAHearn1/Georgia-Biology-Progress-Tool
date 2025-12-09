@@ -3,7 +3,38 @@ import Google from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "@/lib/db";
 
+/**
+ * Resolve the base URL used in OAuth redirects so Google receives a callback URI that matches
+ * the value configured in the Google Cloud console. This guards against the common
+ * `redirect_uri_mismatch` error when running on Vercel preview deployments where NEXTAUTH_URL
+ * is often left unset.
+ */
+function resolveAuthUrl() {
+  const explicit = process.env.NEXTAUTH_URL;
+  if (explicit) return explicit;
+
+  const vercelHost = process.env.VERCEL_URL;
+  if (vercelHost) {
+    return `https://${vercelHost}`;
+  }
+
+  return undefined;
+}
+
+const resolvedAuthUrl = resolveAuthUrl();
+
+if (resolvedAuthUrl) {
+  // Allow NextAuth to construct callback URLs with a consistent host
+  process.env.NEXTAUTH_URL = resolvedAuthUrl;
+} else {
+  console.warn(
+    "NEXTAUTH_URL is not set and VERCEL_URL is unavailable; OAuth callbacks may fail with a redirect_uri_mismatch error."
+  );
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  trustHost: true,
+
   // 1. Adapter: Connects to Postgres to create/update the User record
   adapter: PrismaAdapter(db),
 

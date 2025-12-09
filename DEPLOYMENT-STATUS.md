@@ -100,6 +100,8 @@ NEXTAUTH_SECRET=your_random_secret_key_here  # Fallback
 
 # App URL
 NEXTAUTH_URL=https://your-app.vercel.app
+# If NEXTAUTH_URL is not set on Vercel, the app will fall back to https://<VERCEL_URL>,
+# but setting it explicitly is safer for matching Google OAuth callback URIs.
 ```
 
 ### How to Set Environment Variables in Vercel:
@@ -192,6 +194,11 @@ Expected errors if misconfigured:
 2. Verify `AUTH_SECRET` is set (generate with `openssl rand -base64 32`)
 3. Check `NEXTAUTH_URL` matches your Vercel domain
 4. Redeploy after adding variables
+
+**Also verify authorized redirect URIs in Google Cloud Console:**
+- `http://localhost:3000/api/auth/callback/google` (local)
+- `https://<your-app>.vercel.app/api/auth/callback/google` (Vercel preview/production)
+- `https://your-domain/api/auth/callback/google` (custom domain)
 
 ### Issue: Favicon not loading (404)
 **Cause:** Icon not generated at build time
