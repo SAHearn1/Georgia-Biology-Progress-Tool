@@ -2,10 +2,11 @@ import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "@/lib/db";
+import type { Adapter } from "next-auth/adapters";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   // 1. Adapter: Connects to Postgres to create/update the User record
-  adapter: PrismaAdapter(db),
+  adapter: PrismaAdapter(db) as Adapter,
 
   // 2. Providers
   providers: [
