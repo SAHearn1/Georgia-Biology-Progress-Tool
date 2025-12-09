@@ -49,7 +49,8 @@ cp .env.example .env
 Required environment variables:
 - `DATABASE_URL`: PostgreSQL connection string
 - `NEXTAUTH_SECRET`: Secret key for NextAuth (generate with `openssl rand -base64 32`)
-- `NEXTAUTH_URL`: Your application URL (http://localhost:3000 for local development)
+- `NEXTAUTH_URL`: Your application URL (http://localhost:3000 for local development). If you forget this on Vercel, the app now
+  falls back to `https://<VERCEL_URL>` to avoid Google redirect URI mismatches, but setting it explicitly is recommended.
 
 4. Generate Prisma client and run migrations:
 ```bash
@@ -63,6 +64,15 @@ npm run dev
 ```
 
 6. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+### Google OAuth: Authorized Redirect URIs
+
+To avoid `redirect_uri_mismatch` errors when signing in with Google, add these authorized redirect URIs in the Google Cloud
+Console:
+
+- Local development: `http://localhost:3000/api/auth/callback/google`
+- Production: `https://your-domain/api/auth/callback/google` (replace with your live domain)
+- Vercel preview deployments: `https://<your-vercel-preview>.vercel.app/api/auth/callback/google`
 
 ## Usage
 

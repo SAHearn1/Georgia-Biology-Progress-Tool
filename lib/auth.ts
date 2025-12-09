@@ -17,6 +17,8 @@ if (!process.env.AUTH_SECRET && !process.env.NEXTAUTH_SECRET) {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  trustHost: true,
+
   // 1. Adapter: Connects to Postgres to create/update the User record
   adapter: PrismaAdapter(db),
 
