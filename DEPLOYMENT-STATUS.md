@@ -94,13 +94,17 @@ DATABASE_URL=postgresql://user:pass@host/db
 GOOGLE_CLIENT_ID=your_google_client_id_here
 GOOGLE_CLIENT_SECRET=your_google_client_secret_here
 
-# NextAuth Secret (generate with: openssl rand -base64 32)
+# NextAuth Secrets (generate with: openssl rand -base64 32)
+# IMPORTANT: Set BOTH to the same value for maximum compatibility
 AUTH_SECRET=your_random_secret_key_here
-NEXTAUTH_SECRET=your_random_secret_key_here  # Fallback
+NEXTAUTH_SECRET=your_random_secret_key_here
 
-# App URL
-NEXTAUTH_URL=https://your-app.vercel.app
+# App URL - MUST match your actual Vercel deployment URL exactly
+# Example: https://georgia-biology-tool.vercel.app
+NEXTAUTH_URL=https://your-actual-vercel-domain.vercel.app
 ```
+
+**CRITICAL**: The `NEXTAUTH_URL` must exactly match your Vercel deployment URL. Do not use placeholder values.
 
 ### How to Set Environment Variables in Vercel:
 1. Go to your Vercel project dashboard
@@ -189,9 +193,23 @@ Expected errors if misconfigured:
 **Cause:** Missing or incorrect environment variables
 **Solution:**
 1. Verify `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set in Vercel
-2. Verify `AUTH_SECRET` is set (generate with `openssl rand -base64 32`)
-3. Check `NEXTAUTH_URL` matches your Vercel domain
+2. Verify both `AUTH_SECRET` and `NEXTAUTH_SECRET` are set (generate with `openssl rand -base64 32`)
+3. Check `NEXTAUTH_URL` matches your Vercel domain **exactly**
 4. Redeploy after adding variables
+
+### Issue: redirect_uri_mismatch (OAuth Error)
+**Cause:** The redirect URI configured in Google Cloud Console doesn't match the one being used by the application
+**Solution:**
+1. Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+2. Click on your OAuth 2.0 Client ID
+3. Under "Authorized redirect URIs", add:
+   - `http://localhost:3000/api/auth/callback/google` (for local development)
+   - `https://your-vercel-domain.vercel.app/api/auth/callback/google` (for production)
+4. Make sure the production URL **exactly** matches your Vercel deployment URL
+5. Click "Save" and wait 5 minutes for changes to propagate
+6. Retry authentication
+
+**Note:** See `GOOGLE-OAUTH-SETUP.md` for detailed Google OAuth configuration instructions.
 
 ### Issue: Favicon not loading (404)
 **Cause:** Icon not generated at build time
