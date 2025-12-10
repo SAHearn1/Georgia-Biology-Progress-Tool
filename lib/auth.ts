@@ -19,8 +19,9 @@ if (process.env.NODE_ENV === "development") {
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
 
-  // 1. Adapter: Connects to Postgres to create/update the User record
-  adapter: PrismaAdapter(db),
+  // Using JWT strategy without database adapter
+  // This simplifies auth and avoids database connection issues
+  // User info will be stored in the JWT token instead of the database
 
   // 1. Providers
   providers: [
