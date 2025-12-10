@@ -1,5 +1,7 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import { db } from "@/lib/db";
 
 // Log warnings for missing environment variables (but don't throw errors)
 // NextAuth will handle these gracefully
