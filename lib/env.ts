@@ -34,7 +34,10 @@ const ENV_CONFIG = {
   DATABASE_URL: {
     required: true,
     description: 'PostgreSQL connection string (from Vercel Postgres or Neon)',
-    validate: (val) => val.startsWith('postgres://') || val.startsWith('postgresql://'),
+    validate: (val) =>
+      val.startsWith('postgres://') ||
+      val.startsWith('postgresql://') ||
+      val.startsWith('prisma+postgres://'), // Prisma Accelerate format
   },
 
   // AI Features (Optional)
