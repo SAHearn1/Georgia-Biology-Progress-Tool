@@ -1,21 +1,13 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
+import { env } from "@/lib/env";
 
-// Log warnings for missing environment variables (but don't throw errors)
-// NextAuth will handle these gracefully
-if (process.env.NODE_ENV === "development") {
-  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-    console.warn(
-      "⚠️  Missing Google OAuth credentials. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET."
-    );
-  }
-  if (!process.env.AUTH_SECRET && !process.env.NEXTAUTH_SECRET) {
-    console.warn(
-      "⚠️  Missing authentication secret. Please set AUTH_SECRET or NEXTAUTH_SECRET."
-    );
-  }
-}
-
+/**
+ * NextAuth Configuration with Validated Environment Variables
+ *
+ * Environment variables are validated in lib/env.ts
+ * If any required variables are missing, the app will fail fast with a clear error
+ */
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
 
@@ -26,8 +18,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   // 1. Providers
   providers: [
     Google({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      clientId: env.google.clientId,
+      clientSecret: env.google.clientSecret,
       // Explicitly set authorization parameters for better OAuth flow
       authorization: {
         params: {
@@ -84,8 +76,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
 
-  // 5. Secret: Try AUTH_SECRET first, then fall back to NEXTAUTH_SECRET
-  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+  // 5. Secret: Validated in lib/env.ts
+  secret: env.auth.secret,
 
   // 6. Debug mode (only enable in development)
   debug: process.env.NODE_ENV === "development",

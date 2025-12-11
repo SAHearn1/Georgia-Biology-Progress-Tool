@@ -1,52 +1,50 @@
 import { NextResponse } from 'next/server';
+import { getEnvStatus } from '@/lib/env';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * Debug endpoint to check auth configuration
  * This helps diagnose Configuration errors
+ * Uses centralized environment validation from lib/env.ts
  */
 export async function GET() {
-  const diagnostics = {
-    timestamp: new Date().toISOString(),
-    nodeEnv: process.env.NODE_ENV,
-    checks: {
-      googleClientId: {
-        exists: !!process.env.GOOGLE_CLIENT_ID,
-        value: process.env.GOOGLE_CLIENT_ID
-          ? `${process.env.GOOGLE_CLIENT_ID.slice(0, 10)}...`
-          : 'NOT SET',
-      },
-      googleClientSecret: {
-        exists: !!process.env.GOOGLE_CLIENT_SECRET,
-        value: process.env.GOOGLE_CLIENT_SECRET
-          ? `${process.env.GOOGLE_CLIENT_SECRET.slice(0, 10)}...`
-          : 'NOT SET',
-      },
-      authSecret: {
-        exists: !!(process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET),
-        which: process.env.AUTH_SECRET
-          ? 'AUTH_SECRET'
-          : process.env.NEXTAUTH_SECRET
-            ? 'NEXTAUTH_SECRET'
-            : 'NONE',
-        length: (process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || '').length,
-      },
-      nextauthUrl: {
-        exists: !!process.env.NEXTAUTH_URL,
-        value: process.env.NEXTAUTH_URL || 'NOT SET (trustHost: true - not required)',
-      },
-    },
-    allEnvVarsSet:
-      !!process.env.GOOGLE_CLIENT_ID &&
-      !!process.env.GOOGLE_CLIENT_SECRET &&
-      !!(process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET),
-  };
+  try {
+    const envStatus = getEnvStatus();
 
-  return NextResponse.json(diagnostics, {
-    status: 200,
-    headers: {
-      'Cache-Control': 'no-store, no-cache, must-revalidate',
-    },
-  });
+    const diagnostics = {
+      timestamp: new Date().toISOString(),
+      environment: envStatus.nodeEnv,
+      status: envStatus.configured.googleOAuth &&
+        envStatus.configured.authSecret &&
+        envStatus.configured.database
+        ? 'ALL_REQUIRED_VARS_SET'
+        : 'MISSING_REQUIRED_VARS',
+      configured: envStatus.configured,
+      preview: envStatus.preview,
+      notes: {
+        trustHost: 'Enabled - NEXTAUTH_URL not required',
+        strategy: 'JWT-only (no database adapter)',
+        anthropicAI: envStatus.configured.anthropicAI
+          ? 'Optional feature enabled'
+          : 'Optional feature not configured',
+      },
+    };
+
+    return NextResponse.json(diagnostics, {
+      status: 200,
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+      },
+    });
+  } catch (error) {
+    // If env validation failed, return the error
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString(),
+      },
+      { status: 500 }
+    );
+  }
 }

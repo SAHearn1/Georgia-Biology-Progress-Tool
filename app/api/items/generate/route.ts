@@ -1,21 +1,31 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { db } from "@/lib/db";
-// FIX 1: Remove 'getServerSession' and 'authOptions'
-// FIX 2: Import the v5 'auth' helper from your library
 import { auth } from "@/lib/auth";
+import { env } from "@/lib/env";
 
-// Initialize Anthropic
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || "",
-});
+// Initialize Anthropic with validated API key (optional feature)
+const anthropic = env.ai.anthropicApiKey
+  ? new Anthropic({
+      apiKey: env.ai.anthropicApiKey,
+    })
+  : null;
 
 export async function POST(req: Request) {
   try {
-    // FIX 3: Use the v5 auth() call instead of getServerSession
-    const session = await auth();
+    // Check if Anthropic API is configured
+    if (!anthropic) {
+      return NextResponse.json(
+        {
+          error: "AI item generation is not configured. Please set ANTHROPIC_API_KEY environment variable.",
+        },
+        { status: 503 }
+      );
+    }
 
     // Check for valid session
+    const session = await auth();
+
     if (!session || !session.user) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
